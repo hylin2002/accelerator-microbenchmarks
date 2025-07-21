@@ -1,8 +1,9 @@
 """A script to run the microbenchmarks in Jax over DCN and ICI collectives."""
 
 # pylint: disable=g-importing-member
+import numpy as np
 from functools import partial
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List
 
 from benchmark_utils import simple_timeit, MetricsStatistics
 import jax
@@ -15,13 +16,13 @@ from jax.sharding import PartitionSpec as P
 # pylint: disable=g-importing-member
 
 
-def create_mesh(dcn_size: int, ici_size: int) -> tuple[Mesh, list[int], list[int]]:
+def create_mesh(dcn_size: int, ici_size: List[int]) -> tuple[Mesh, list[int], list[int]]:
     """Creates a hybrid mesh with the given DCN and ICI sizes."""
     dcn_parallelism = [dcn_size, 1]
-    ici_parallelism = [1, ici_size]
+    ici_parallelism = ici_size
 
     total_devices = jax.device_count()
-    if total_devices != (dcn_size * ici_size):
+    if total_devices != (dcn_size * np.prod(ici_size)):
         raise ValueError(
             f"Need {dcn_size * ici_size} devices, but found {total_devices}"
         )
@@ -31,8 +32,8 @@ def create_mesh(dcn_size: int, ici_size: int) -> tuple[Mesh, list[int], list[int
         )
         mesh = Mesh(mesh_devices, ("dcn", "ici"))
     else:
-        mesh_devices = mesh_utils.create_device_mesh([ici_size], devices=jax.devices())
-        mesh = Mesh(mesh_devices, "ici")
+        mesh_devices = mesh_utils.create_device_mesh(ici_size, devices=jax.devices())
+        mesh = Mesh(mesh_devices, ("ici", "ici2"))
     return mesh, dcn_parallelism, ici_parallelism
 
 
@@ -54,7 +55,7 @@ def psum_benchmark(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     num_runs: int = 1,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
@@ -96,7 +97,7 @@ def psum_benchmark(
             )
 
     # ICI benchmark
-    if ici_size > 1:
+    if np.prod(ici_size) > 1:
 
         @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, None))
         def f(x):
@@ -123,7 +124,7 @@ def psum_benchmark_calculate_metrics(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     ici_average_time_ms_list: list[float],
     dcn_average_time_ms_list: list[float],
 ) -> Dict[str, Any]:
@@ -157,7 +158,7 @@ def psum_benchmark_calculate_metrics(
         metrics.update(dcn_bandwidth_gbyte_s_statistics.serialize_statistics())
 
     # Calculate metrics for ICI benchmark
-    if ici_size > 1 and ici_average_time_ms_list is not None:
+    if np.prod(ici_size) > 1 and ici_average_time_ms_list is not None:
         # bandwidth is claculated as psum can be done via reduce_scatter +
         # all_gather so bandwidth is the sum of the two (formulas below)
         ici_bandwidth_gbyte_s_list = [
@@ -185,7 +186,7 @@ def psum_scatter_benchmark(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     num_runs: int = 1,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
@@ -230,11 +231,11 @@ def psum_scatter_benchmark(
             )
 
     # ICI benchmark
-    if ici_size > 1:
+    if np.prod(ici_size) > 1:
 
         @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, "ici"))
         def f(x):
-            return jax.lax.psum_scatter(x, "ici", tiled=True)
+            return jax.lax.psum_scatter(x, ("ici", "ici2"), tiled=True)
 
         sharded_matrix = jax.device_put(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
@@ -258,7 +259,7 @@ def psum_scatter_benchmark_calculate_metrics(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     ici_average_time_ms_list: list[float],
     dcn_average_time_ms_list: list[float],
 ) -> Dict[str, Any]:
@@ -292,7 +293,7 @@ def psum_scatter_benchmark_calculate_metrics(
         metrics.update(dcn_bandwidth_gbyte_s_statistics.serialize_statistics())
 
     # Calculate metrics for ICI benchmark
-    if ici_size > 1 and ici_average_time_ms_list is not None:
+    if np.prod(ici_size) > 1 and ici_average_time_ms_list is not None:
         # each sharded matrix size is matrix_size_gbyte / ici_size and then it needs
         # to use (ici_size - 1) steps in a ring algorithm
         ici_bandwidth_gbyte_s_list = [
@@ -320,7 +321,7 @@ def all_gather_benchmark(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     num_runs: int = 1,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
@@ -366,7 +367,7 @@ def all_gather_benchmark(
             )
 
     # ICI benchmark
-    if ici_size > 1:
+    if np.prod(ici_size) > 1:
 
         @partial(
             shard_map,
@@ -376,7 +377,7 @@ def all_gather_benchmark(
             check_rep=False,
         )
         def f(x):
-            return jax.lax.all_gather(x, "ici", tiled=True)
+            return jax.lax.all_gather(x, ("ici", "ici2"), tiled=True)
 
         sharded_matrix = jax.device_put(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
@@ -400,7 +401,7 @@ def all_gather_benchmark_calculate_metrics(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     ici_average_time_ms_list: list[float],
     dcn_average_time_ms_list: list[float],
 ) -> Dict[str, Any]:
@@ -433,11 +434,11 @@ def all_gather_benchmark_calculate_metrics(
         metrics.update(dcn_bandwidth_gbyte_s_statistics.serialize_statistics())
 
     # Calculate metrics for ICI benchmark
-    if ici_size > 1 and ici_average_time_ms_list is not None:
+    if np.prod(ici_size) > 1 and ici_average_time_ms_list is not None:
         # each sharded matrix size is matrix_size_gbyte / ici_size and then it needs
         # to use (ici_size - 1) steps in a ring algorithm
         ici_bandwidth_gbyte_s_list = [
-                matrix_size_gbyte * (ici_size - 1) / (ici_average_time_ms / 1e3)
+                matrix_size_gbyte * (np.prod(ici_size) - 1) / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
         ]
         ici_bandwidth_gbyte_s_statistics = MetricsStatistics(
@@ -458,7 +459,7 @@ def ppermute_benchmark(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     num_runs: int = 1,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
@@ -505,7 +506,7 @@ def ppermute_benchmark(
             )
 
     # ICI benchmark
-    if ici_size > 1:
+    if np.prod(ici_size) > 1:
 
         @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, "ici"))
         def f(x):
@@ -534,7 +535,7 @@ def ppermute_benchmark_calculate_metrics(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     ici_average_time_ms_list: list[float],
     dcn_average_time_ms_list: list[float],
 ) -> Dict[str, Any]:
@@ -564,7 +565,7 @@ def ppermute_benchmark_calculate_metrics(
         metrics.update(dcn_bandwidth_gbyte_s_statistics.serialize_statistics())
 
     # Calculate metrics for ICI benchmark
-    if ici_size > 1 and ici_average_time_ms_list is not None:
+    if np.prod(ici_size) > 1 and ici_average_time_ms_list is not None:
         # each sharded matrix size is matrix_size_gbyte / ici_size and then it needs
         # to use 1 step
         ici_bandwidth_gbyte_s_list = [
@@ -587,7 +588,7 @@ def all_to_all_benchmark(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     num_runs: int = 1,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
@@ -631,7 +632,7 @@ def all_to_all_benchmark(
         )
 
     # ICI benchmark
-    if ici_size > 1:
+    if np.prod(ici_size) > 1:
 
         @partial(
             shard_map,
@@ -665,7 +666,7 @@ def all_to_all_benchmark_calculate_metrics(
     matrix_dim: int,
     dtype: jnp.dtype,
     dcn_size: int,
-    ici_size: int,
+    ici_size: List[int],
     ici_average_time_ms_list: list[float],
     dcn_average_time_ms_list: list[float],
 ) -> Dict[str, Any]:
@@ -697,7 +698,7 @@ def all_to_all_benchmark_calculate_metrics(
         metrics.update(dcn_bandwidth_gbyte_s_statistics.serialize_statistics())
 
     # Calculate metrics for ICI benchmark
-    if ici_size > 1 and ici_average_time_ms_list is not None:
+    if np.prod(ici_size) > 1 and ici_average_time_ms_list is not None:
 
         ici_bandwidth_gbyte_s_list = [
                 matrix_size_gbyte
