@@ -61,7 +61,7 @@ def get_trace(log_dir: str) -> dict[str, Any]:
 
 
 def get_metrics_from_trace(trace: dict[str, Any], task: str) -> float:
-    event_matcher = re.compile(task)
+    event_matcher = re.compile("all-to-all.2")
     if "traceEvents" not in trace:
         raise KeyError("Key 'traceEvents' not found in trace.")
 

@@ -588,7 +588,7 @@ def all_to_all_benchmark(
     dtype: jnp.dtype,
     dcn_size: int,
     ici_size: int,
-    num_runs: int = 1,
+    num_runs: int = 100,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the all_to_all collective operation.
