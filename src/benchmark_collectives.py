@@ -434,6 +434,7 @@ def all_gather_benchmark_calculate_metrics(
     if ici_size > 1 and ici_average_time_ms_list is not None:
         # each sharded matrix size is matrix_size_gbyte / ici_size and then it needs
         # to use (ici_size - 1) steps in a ring algorithm
+        print(f"log: {matrix_dim * matrix_dim * dtype.dtype.itemsize * (ici_size - 1)} {ici_average_time_ms_list[0] / 1e3}")
         ici_bandwidth_gbyte_s_list = [
                 matrix_size_gbyte * (ici_size - 1) / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
