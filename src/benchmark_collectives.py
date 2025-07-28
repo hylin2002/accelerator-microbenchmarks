@@ -163,7 +163,7 @@ def psum_benchmark_calculate_metrics(
         ici_bandwidth_gbyte_s_list = [
                 matrix_size_gbyte
                 * (ici_size - 1)
-                * 2
+                * 2 / ici_size
                 / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
         ]
@@ -296,7 +296,7 @@ def psum_scatter_benchmark_calculate_metrics(
         # to use (ici_size - 1) steps in a ring algorithm
         ici_bandwidth_gbyte_s_list = [
                 matrix_size_gbyte
-                * (ici_size - 1)
+                * (ici_size - 1) / ici_size
                 / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
         ]
@@ -436,7 +436,7 @@ def all_gather_benchmark_calculate_metrics(
         # to use (ici_size - 1) steps in a ring algorithm
         print(f"log: {matrix_dim * matrix_dim * dtype.dtype.itemsize * (ici_size - 1)} {ici_average_time_ms_list[0] / 1e3}")
         ici_bandwidth_gbyte_s_list = [
-                matrix_size_gbyte * (ici_size - 1) / (ici_average_time_ms / 1e3)
+                matrix_size_gbyte * (ici_size - 1) / ici_size / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
         ]
         ici_bandwidth_gbyte_s_statistics = MetricsStatistics(
