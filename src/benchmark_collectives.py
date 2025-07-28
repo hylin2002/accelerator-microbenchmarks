@@ -384,7 +384,7 @@ def all_gather_benchmark(
             jitted_op,
             sharded_matrix,
             tries=num_runs,
-            task="all_gather_ici_op",
+            task="all-gather.7",
             trace_dir=trace_dir,
         )
 
