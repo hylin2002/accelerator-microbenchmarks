@@ -431,4 +431,4 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
-    main(args.config, args.multithreade, args.getjit)
+    main(args.config, args.multithreaded, args.getjit)
