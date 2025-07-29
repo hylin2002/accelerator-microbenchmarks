@@ -56,6 +56,7 @@ def psum_benchmark(
     dcn_size: int,
     ici_size: int,
     num_runs: int = 1,
+    get_jit: bool = False,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the psum collective operation.
@@ -106,13 +107,22 @@ def psum_benchmark(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
         )
         jitted_op = jax.jit(f)
-        ici_average_time_ms_list = simple_timeit(
-            jitted_op,
-            sharded_matrix,
-            tries=num_runs,
-            task="psum_ici_op",
-            trace_dir=trace_dir,
-        )
+        if get_jit:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="jit_f*",
+                trace_dir=trace_dir,
+            )
+        else:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="psum_ici_op",
+                trace_dir=trace_dir,
+            )
     return {
         "dcn_average_time_ms_list": dcn_average_time_ms_list,
         "ici_average_time_ms_list": ici_average_time_ms_list,
@@ -186,6 +196,7 @@ def psum_scatter_benchmark(
     dcn_size: int,
     ici_size: int,
     num_runs: int = 1,
+    get_jit: bool = False,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the psum_scatter collective operation.
@@ -239,13 +250,22 @@ def psum_scatter_benchmark(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
         )
         jitted_op = jax.jit(f)
-        ici_average_time_ms_list = simple_timeit(
-            jitted_op,
-            sharded_matrix,
-            tries=num_runs,
-            task="psum_scatter_ici_op",
-            trace_dir=trace_dir,
-        )
+        if get_jit:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="psum_scatter_ici_op",
+                trace_dir=trace_dir,
+            )
+        else:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="psum_scatter_ici_op",
+                trace_dir=trace_dir,
+            )
 
     return {
         "dcn_average_time_ms_list": dcn_average_time_ms_list,
@@ -320,6 +340,7 @@ def all_gather_benchmark(
     dcn_size: int,
     ici_size: int,
     num_runs: int = 1,
+    get_jit: bool = False,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the all_gather collective operation.
@@ -380,13 +401,22 @@ def all_gather_benchmark(
             matrix, jax.sharding.NamedSharding(mesh, P(None, "ici"))
         )
         jitted_op = jax.jit(f)
-        ici_average_time_ms_list = simple_timeit(
-            jitted_op,
-            sharded_matrix,
-            tries=num_runs,
-            task="all_gather_ici_op",
-            trace_dir=trace_dir,
-        )
+        if get_jit:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="jit_f*",
+                trace_dir=trace_dir,
+            )
+        else:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="all_gather_ici_op",
+                trace_dir=trace_dir,
+            )
 
     return {
         "dcn_average_time_ms_list": dcn_average_time_ms_list,
@@ -459,6 +489,7 @@ def ppermute_benchmark(
     dcn_size: int,
     ici_size: int,
     num_runs: int = 1,
+    get_jit: bool = False,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the ppermute collective operation.
@@ -515,13 +546,22 @@ def ppermute_benchmark(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
         )
         jitted_op = jax.jit(f)
-        ici_average_time_ms_list = simple_timeit(
-            jitted_op,
-            sharded_matrix,
-            tries=num_runs,
-            task="ppermute_ici_op",
-            trace_dir=trace_dir,
-        )
+        if get_jit:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="jit_f*",
+                trace_dir=trace_dir,
+            )
+        else:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="ppermute_ici_op",
+                trace_dir=trace_dir,
+            )
 
     return {
         "dcn_average_time_ms_list": dcn_average_time_ms_list,
@@ -588,6 +628,7 @@ def all_to_all_benchmark(
     dcn_size: int,
     ici_size: int,
     num_runs: int = 1,
+    get_jit: bool = False,
     trace_dir: str = None,
 ) -> Dict[str, Any]:
     """Benchmarks the all_to_all collective operation.
@@ -646,13 +687,22 @@ def all_to_all_benchmark(
             matrix, jax.sharding.NamedSharding(mesh, P(None, None))
         )
         jitted_op = jax.jit(f)
-        ici_average_time_ms_list = simple_timeit(
-            jitted_op,
-            sharded_matrix,
-            tries=num_runs,
-            task="all_to_all_ici_op",
-            trace_dir=trace_dir,
-        )
+        if get_jit:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="jit_f*",
+                trace_dir=trace_dir,
+            )
+        else:
+            ici_average_time_ms_list = simple_timeit(
+                jitted_op,
+                sharded_matrix,
+                tries=num_runs,
+                task="all_to_all_ici_op",
+                trace_dir=trace_dir,
+            )
 
     return {
         "dcn_average_time_ms_list": dcn_average_time_ms_list,

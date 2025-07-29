@@ -218,7 +218,7 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
     print(f"Metrics written to CSV at {csv_path}.")
 
 
-def run_single_benchmark(benchmark_config: Dict[str, Any]):
+def run_single_benchmark(benchmark_config: Dict[str, Any], getjit: bool):
     """Run a single benchmark with one or more configurations."""
     # Extract benchmark details
     benchmark_name = benchmark_config.get("benchmark_name")
@@ -250,7 +250,7 @@ def run_single_benchmark(benchmark_config: Dict[str, Any]):
         test_start_time = (
             datetime.datetime.now(tz=datetime.timezone.utc).isoformat() + "Z"
         )  # "Z" indicates UTC
-        benchmark_results = benchmark_func(**benchmark_param)
+        benchmark_results = benchmark_func(**benchmark_param, getjit=getjit)
         test_end_time = (
             datetime.datetime.now(tz=datetime.timezone.utc).isoformat() + "Z"
         )
@@ -300,7 +300,7 @@ def run_single_benchmark(benchmark_config: Dict[str, Any]):
         write_to_csv(f"{csv_path}/{test_name}.csv", calculate_metrics_results)
 
 
-def main(config_path: str, multithreaded: bool):
+def main(config_path: str, multithreaded: bool, getjit: bool):
     """Main function."""
     # Load configuration
     config = get_benchmark_config(config_path)
@@ -338,7 +338,7 @@ def main(config_path: str, multithreaded: bool):
 
     else:
         for benchmark_config in benchmarks:
-            run_single_benchmark(benchmark_config)
+            run_single_benchmark(benchmark_config, getjit=getjit)
 
 
 def run_benchmark_multithreaded(benchmark_config):
@@ -425,5 +425,10 @@ if __name__ == "__main__":
         default=False,
         help="Path to the YAML configuration file.",
     )
+    parser.add_argument(
+        "--getjit",
+        type=bool,
+        default=False,
+    )
     args = parser.parse_args()
-    main(args.config, args.multithreaded)
+    main(args.config, args.multithreade, args.getjit)
