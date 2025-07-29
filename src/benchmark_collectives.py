@@ -635,15 +635,15 @@ def all_to_all_benchmark(
         @partial(
             shard_map,
             mesh=mesh,
-            in_specs=P(None, "ici"),
-            out_specs=P("ici", None),
+            in_specs=P(None, None),
+            out_specs=P(None, None),
             check_rep=False,
         )
         def f(x):
-            return jax.lax.all_to_all(x, "ici", split_axis=0, concat_axis=1, tiled=True)
+            return jax.lax.all_to_all(x, "ici", split_axis=0, concat_axis=0, tiled=True)
 
         sharded_matrix = jax.device_put(
-            matrix, jax.sharding.NamedSharding(mesh, P(None, "ici"))
+            matrix, jax.sharding.NamedSharding(mesh, P(None, None))
         )
         jitted_op = jax.jit(f)
         ici_average_time_ms_list = simple_timeit(
