@@ -701,8 +701,7 @@ def all_to_all_benchmark_calculate_metrics(
 
         ici_bandwidth_gbyte_s_list = [
                 matrix_size_gbyte
-                * (ici_size - 1)
-                / ici_size
+                / 4
                 / (ici_average_time_ms / 1e3)
                 for ici_average_time_ms in ici_average_time_ms_list
         ]
