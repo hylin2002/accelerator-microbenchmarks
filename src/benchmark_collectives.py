@@ -73,7 +73,7 @@ def psum_benchmark(
       The measured time for the DCN and ICI benchmarks.
     """
     mesh, _, _ = create_mesh(dcn_size, ici_size)
-    matrix = jnp.ones((matrix_dim, matrix_dim), dtype=dtype)
+    matrix = jnp.ones((1, matrix_dim), dtype=dtype)
     dcn_average_time_ms_list = ici_average_time_ms_list = None
     # DCN benchmark
     if dcn_size > 1:
@@ -204,7 +204,7 @@ def psum_scatter_benchmark(
       The measured time for the DCN and ICI benchmarks.
     """
     mesh, _, _ = create_mesh(dcn_size, ici_size)
-    matrix = jnp.ones((matrix_dim, matrix_dim), dtype=dtype)
+    matrix = jnp.ones((1, matrix_dim), dtype=dtype)
     dcn_average_time_ms_list = ici_average_time_ms_list = None
     # DCN benchmark
     if dcn_size > 1:
@@ -339,7 +339,7 @@ def all_gather_benchmark(
       The measured time for the DCN and ICI benchmarks.
     """
     mesh, _, _ = create_mesh(dcn_size, ici_size)
-    matrix = jnp.ones((matrix_dim, matrix_dim), dtype=dtype)
+    matrix = jnp.ones((1, matrix_dim), dtype=dtype)
     dcn_average_time_ms_list = ici_average_time_ms_list = None
 
     # DCN benchmark
@@ -477,7 +477,7 @@ def ppermute_benchmark(
       The measured time for the DCN and ICI benchmarks.
     """
     mesh, _, _ = create_mesh(dcn_size, ici_size)
-    matrix = jnp.ones((matrix_dim, matrix_dim), dtype=dtype)
+    matrix = jnp.ones((1, matrix_dim), dtype=dtype)
     dcn_average_time_ms_list = ici_average_time_ms_list = None
 
     # DCN benchmark
@@ -606,7 +606,7 @@ def all_to_all_benchmark(
       The measured time for the DCN and ICI benchmarks.
     """
     mesh, _, _ = create_mesh(dcn_size, ici_size)
-    matrix = jnp.ones((matrix_dim, matrix_dim), dtype=dtype)
+    matrix = jnp.ones((1, matrix_dim), dtype=dtype)
     dcn_average_time_ms_list = ici_average_time_ms_list = None
 
     # DCN benchmark
