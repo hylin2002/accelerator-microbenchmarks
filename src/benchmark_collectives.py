@@ -409,7 +409,7 @@ def all_gather_benchmark_calculate_metrics(
     params = locals().items()
     metadata = get_metrics_helper(params)
     metrics = {}
-    matrix_size_gbyte = matrix_dim * matrix_dim * dtype.dtype.itemsize / 1e9
+    matrix_size_gbyte = matrix_dim * dtype.dtype.itemsize / 1e9
     # Calculate metrics for DCN benchmark
     if dcn_size > 1 and dcn_average_time_ms_list is not None:
 
