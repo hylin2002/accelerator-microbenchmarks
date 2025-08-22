@@ -13,14 +13,16 @@ import itertools
 import random
 import string
 from typing import Any, Callable, Dict, List, Tuple
-from benchmark_utils import maybe_write_metrics_file, rename_xla_dump
+from benchmark_utils import maybe_write_metrics_file, rename_xla_dump, MetricsStatistics
 import jax
 import yaml
 import ray
 from concurrent.futures import ThreadPoolExecutor
 import os
 import copy
-
+import pandas as pd
+import ast
+import json
 
 COLLECTIVE_BENCHMARK_MAP = {
     "all_gather": "benchmark_collectives.all_gather_benchmark",
@@ -197,24 +199,71 @@ def generate_benchmark_params_sweeping(
 
 
 def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]]):
-    """Write the metrics results to a CSV file."""
+    """Writes benchmark metrics to a CSV file.
+
+    This function takes a list of dictionaries, where each dictionary contains
+    the 'metadata' and 'metrics' from a benchmark run. It processes each
+    dictionary by flattening it, calculating additional statistics for specific
+    fields (like 'ici_average_time_ms_list'), and then converting it into a
+    pandas DataFrame. All resulting DataFrames are concatenated and written to
+    the specified CSV file.
+
+    Args:
+        csv_path: The path to the output CSV file.
+        calculate_metrics_results: A list of dictionaries with benchmark results.
+    """
     if not calculate_metrics_results:
         raise ValueError("0 metrics results are collected.")
     if not isinstance(calculate_metrics_results[0], dict):
         raise ValueError("metrics result is not a dict.")
-    # Open the CSV file for writing
-    with open(csv_path, mode="w", newline="") as csv_file:
-        # Use the keys from the first item as the headers
 
-        headers = calculate_metrics_results[0].keys()
+    def flatten_dict(current_dict: Dict, output_dict: Dict) -> Dict:
+        """Recursively flattens a nested dictionary."""
+        for key, val in current_dict.items():
+            if isinstance(val, Dict):
+                output_dict = flatten_dict(val, output_dict)
+            else:
+                # Try to evaluate string-formatted literals (e.g., "[1, 2, 3]")
+                try:
+                    output_dict[key] = ast.literal_eval(val)
+                except (ValueError, SyntaxError, TypeError):
+                    # If it's not a valid literal, keep it as a string.
+                    output_dict[key] = val
+        return output_dict
 
-        # Initialize a DictWriter with the headers
-        writer = csv.DictWriter(csv_file, fieldnames=headers)
-        writer.writeheader()  # Write the header row
+    def convert_dict_to_df(target_dict: Dict) -> pd.DataFrame:
+        """Converts a single benchmark result dictionary to a pandas DataFrame."""
+        flattened_dict = flatten_dict(target_dict, {})
 
-        # Iterate through each result and write to the CSV
-        for each in calculate_metrics_results:
-            writer.writerow(each)  # Write each row
+        # TODO(user): Generalize this hard-coded value if needed.
+        flattened_dict["dtype"] = "bfloat16"
+        
+        # This section is specific to collective benchmarks that produce
+        # 'ici_average_time_ms_list'.
+        if "ici_average_time_ms_list" in flattened_dict:
+            # Calculate statistics for the timing list.
+            ici_average_time_ms_statistics = MetricsStatistics(
+                metrics_list=flattened_dict["ici_average_time_ms_list"],
+                metrics_name="ici_average_time_ms",
+            ).statistics
+            for key, val in ici_average_time_ms_statistics.items():
+                flattened_dict["ici_average_time_ms_" + key] = val
+
+
+            # Convert list to JSON string for CSV storage.
+            flattened_dict["ici_average_time_ms_list"] = json.dumps(
+                flattened_dict["ici_average_time_ms_list"]
+            )
+
+        df = pd.DataFrame(flattened_dict, index=[0])
+        return df
+
+    # Create a list of DataFrames and concatenate them once for efficiency.
+    df_list = [convert_dict_to_df(each) for each in calculate_metrics_results]
+    df = pd.concat(df_list, ignore_index=True)
+
+    df.to_csv(csv_path, index=False)
+
     print(f"Metrics written to CSV at {csv_path}.")
 
 
