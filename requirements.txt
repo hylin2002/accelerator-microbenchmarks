@@ -3,6 +3,7 @@ absl-py
 flax
 jaxlib
 numpy
+pandas
 jsonlines
 ray[default]
 # For profiling
