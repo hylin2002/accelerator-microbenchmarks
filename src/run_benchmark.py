@@ -259,7 +259,10 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
         return df
 
     # Create a list of DataFrames and concatenate them once for efficiency.
-    # TODO(hylin2002@) The temporary CSV output needs refactoring; make calculate_metrics_results more modular for readability.
+    # TODO(hylin2002@)
+    # This is a temporary workaround to generate a properly formatted CSV file for the output metrics.
+    # We should revert this PR and refactor the code such that metrics object is a flatten dict that can be easily exported as a CSV.
+    # For other information that requires nested structures, we should serialize it into a json file."
     df_list = [convert_dict_to_df(each) for each in calculate_metrics_results]
     df = pd.concat(df_list, ignore_index=True)
 
