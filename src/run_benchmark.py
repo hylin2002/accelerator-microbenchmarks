@@ -217,11 +217,12 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
     if not isinstance(calculate_metrics_results[0], dict):
         raise ValueError("metrics result is not a dict.")
 
-    def flatten_dict(current_dict: Dict, output_dict: Dict) -> Dict:
+    def flatten_dict(current_dict: Dict) -> Dict:
         """Recursively flattens a nested dictionary."""
+        output_dict = {}
         for key, val in current_dict.items():
             if isinstance(val, Dict):
-                output_dict = flatten_dict(val, output_dict)
+                output_dict.update(flatten_dict(val))
             else:
                 # Try to evaluate string-formatted literals (e.g., "[1, 2, 3]")
                 try:
@@ -233,10 +234,7 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
 
     def convert_dict_to_df(target_dict: Dict) -> pd.DataFrame:
         """Converts a single benchmark result dictionary to a pandas DataFrame."""
-        flattened_dict = flatten_dict(target_dict, {})
-
-        # TODO(user): Generalize this hard-coded value if needed.
-        flattened_dict["dtype"] = "bfloat16"
+        flattened_dict = flatten_dict(target_dict)
         
         # This section is specific to collective benchmarks that produce
         # 'ici_average_time_ms_list'.
@@ -249,7 +247,6 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
             for key, val in ici_average_time_ms_statistics.items():
                 flattened_dict["ici_average_time_ms_" + key] = val
 
-
             # Convert list to JSON string for CSV storage.
             flattened_dict["ici_average_time_ms_list"] = json.dumps(
                 flattened_dict["ici_average_time_ms_list"]
@@ -258,7 +255,6 @@ def write_to_csv(csv_path: str, calculate_metrics_results: List[Dict[str, Any]])
         df = pd.DataFrame(flattened_dict, index=[0])
         return df
 
-    # Create a list of DataFrames and concatenate them once for efficiency.
     # TODO(hylin2002@)
     # This is a temporary workaround to generate a properly formatted CSV file for the output metrics.
     # We should revert this PR and refactor the code such that metrics object is a flatten dict that can be easily exported as a CSV.
