@@ -72,8 +72,11 @@ def get_metrics_from_trace(trace: dict[str, Any], task: str) -> list[float]:
     # Check if the given task name is a collective with corresponding TPU opertion.
     # This is a workaround and should be reverted or refactored in future.
     if task in TARGET_TASK_NAME_COLLECTIVES_MAP:
-        task = TARGET_TASK_NAME_COLLECTIVES_MAP[task]
-        return get_metrics_from_trace_tpu(trace, task)
+        try:
+            task = TARGET_TASK_NAME_COLLECTIVES_MAP[task]
+            return get_metrics_from_trace_tpu(trace, task)
+        except:
+            return [-1.]
     event_matcher = re.compile(task)
     
     if "traceEvents" not in trace:
