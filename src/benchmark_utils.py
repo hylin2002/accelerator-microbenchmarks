@@ -31,7 +31,15 @@ def simple_timeit(f, *args, matrix_dim=None, tries=10, task=None, trace_dir=None
     assert task is not None
 
     if trace_dir:
-        return timeit_from_trace(f, *args, matrix_dim=matrix_dim, tries=tries, task=task, trace_dir=trace_dir)
+        try:
+            outcomes_ms = timeit_from_trace(
+                f, *args, matrix_dim=matrix_dim, tries=tries, task=task, trace_dir=trace_dir
+            )
+            if outcomes_ms is not None:
+                return outcomes_ms
+            print("Warning: timeit_from_trace returned empty results. Falling back to manual timing.")
+        except Exception as e:
+            print(f"Warning: Failed to get metrics from trace due to: {e}. Falling back to manual timing.")
 
     outcomes_ms = []
     jax.block_until_ready(f(*args))  # warm it up!
@@ -71,9 +79,13 @@ def get_metrics_from_trace(trace: dict[str, Any], task: str) -> list[float]:
 
     # Check if the given task name is a collective with corresponding TPU opertion.
     # This is a workaround and should be reverted or refactored in future.
+    # If task is not present in the map, fallback to the default behavior to measure the timing from the CPU end.
     if task in TARGET_TASK_NAME_COLLECTIVES_MAP:
-        task = TARGET_TASK_NAME_COLLECTIVES_MAP[task]
-        return get_metrics_from_trace_tpu(trace, task)
+        try:
+            task = TARGET_TASK_NAME_COLLECTIVES_MAP[task]
+            return get_metrics_from_trace_tpu(trace, task)
+        except:
+            return None
     event_matcher = re.compile(task)
     
     if "traceEvents" not in trace:
