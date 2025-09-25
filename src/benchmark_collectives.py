@@ -79,7 +79,7 @@ def psum_benchmark(
     # DCN benchmark
     if dcn_size > 1:
 
-        @partial(shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P(None))
+        @partial(shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P(None, None), check_rep=False)
         def f(x):
             return jax.lax.psum(x, "dcn")
 
@@ -100,7 +100,7 @@ def psum_benchmark(
     # ICI benchmark
     if ici_size > 1:
 
-        @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, None))
+        @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, None), check_rep=False)
         def f(x):
             return jax.lax.psum(x, "ici")
 
@@ -215,7 +215,7 @@ def psum_scatter_benchmark(
     if dcn_size > 1:
 
         @partial(
-            shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P("dcn", None)
+            shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P("dcn", None), check_rep=False
         )
         def f(x):
             return jax.lax.psum_scatter(x, "dcn", tiled=True)
@@ -237,7 +237,7 @@ def psum_scatter_benchmark(
     # ICI benchmark
     if ici_size > 1:
 
-        @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, "ici"))
+        @partial(shard_map, mesh=mesh, in_specs=P(None, None), out_specs=P(None, "ici"), check_rep=False)
         def f(x):
             return jax.lax.psum_scatter(x, "ici", tiled=True)
 
@@ -634,7 +634,7 @@ def all_to_all_benchmark(
     if dcn_size > 1:
 
         @partial(
-            shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P("dcn", None)
+            shard_map, mesh=mesh, in_specs=P("dcn", None), out_specs=P("dcn", None), check_rep=False
         )
         def f(x):
             return jax.lax.all_to_all(x, "dcn", split_axis=0, concat_axis=0, tiled=True)
