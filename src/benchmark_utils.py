@@ -145,12 +145,12 @@ def maybe_write_metrics_file(
     """Writes metrics to a JSONL file to be consumed by the XLML metrics pipeline."""
 
     local_devices = jax.local_devices()
-    devices = jax.devices()
     tpu_worker_id = int(os.getenv("TPU_WORKER_ID", "0"))
+    is_multislice = hasattr(local_devices[0], "slice_index")
 
     # For multi-slice workload, the result is only written by the first host on the first slice (slice_index=0, tpu_worker_id=0).
     # For single-slice workload, the result is only written by the first host (tpu_worker_id=0).
-    if len(local_devices) != len(devices):
+    if is_multislice:
         if local_devices[0].slice_index != 0 or tpu_worker_id != 0:
             return
     else:
