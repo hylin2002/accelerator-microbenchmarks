@@ -1,5 +1,5 @@
 benchmarks:
-- benchmark_name: "single_chip_hbm_copy"
+- benchmark_name: "single_device_hbm_copy"
   benchmark_sweep_params:
   - {num_elements_range: {start: 1048576, end: 4294967296, multiplier: 2}, dtype: "bfloat16", num_runs: 1}
   trace_dir: "../microbenchmarks/hbm"

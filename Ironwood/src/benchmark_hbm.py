@@ -33,7 +33,7 @@ def get_metrics_helper(
     return metadata
 
 
-def single_chip_hbm_copy(
+def single_device_hbm_copy(
     num_elements: int,
     dtype: jnp.dtype,
     num_runs: int = 1,
@@ -66,10 +66,10 @@ def single_chip_hbm_copy(
     return {"time_ms_list": time_ms_list}
 
 
-def single_chip_hbm_copy_calculate_metrics(
+def single_device_hbm_copy_calculate_metrics(
     num_elements: int, dtype: jnp.dtype, time_ms_list: list
 ) -> Dict[str, Any]:
-    """Calculates the metrics for the single chip hbm copy benchmark."""
+    """Calculates the metrics for the single device hbm copy benchmark."""
     # Build dictionary of all the parameters in the function
     params = locals().items()
     metadata = get_metrics_helper(params)

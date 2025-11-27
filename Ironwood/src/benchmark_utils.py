@@ -31,7 +31,7 @@ TARGET_TASK_NAME_COLLECTIVES_MAP = {
     "all_gather_ici_op": r"all-gather.[0-9]+",
     "psum_ici_op": r"all-reduce.[0-9]+",
     "ppermute_ici_op": r"collective-permute.[0-9]+",
-    "single_chip_hbm_copy": r"copy.[0-9]+",
+    "single_device_hbm_copy": r"copy.[0-9]+",
 }
 
 

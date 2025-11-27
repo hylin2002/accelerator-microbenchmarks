@@ -52,7 +52,7 @@ ATTENTION_BENCHMARK_MAP = {
     "tokamax_splash_attention": "benchmark_attention.tokamax_splash_attention_benchmark",
 }
 HBM_BENCHMARK_MAP = {
-    "single_chip_hbm_copy": "benchmark_hbm.single_chip_hbm_copy",
+    "single_device_hbm_copy": "benchmark_hbm.single_device_hbm_copy",
 }
 COMPUTE_BENCHMARK_MAP = {
     "gemm_simple": "benchmark_gemm.gemm_simple",
