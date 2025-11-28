@@ -6,7 +6,7 @@ Microbenchmarks that assess the performance of individual operations and compone
 - Ensure [gcloud CLI](https://docs.cloud.google.com/sdk/docs/install) is installed in your local machine.
 - Ensure `kubectl` is installed in your local machine: `gcloud components install kubectl
 `
-- Create a Cloud TPU GKE cluster
+- Create a Cloud TPU GKE cluster, which uses GKE version >= `1.34.0-gke.2201000`
 - Ensure you have sufficient number of chips. This guide provisions two slices; one `2x2x1` (single host) slice and one `4x4x4` (multi host) slice and therefore requires 68 chips.
 
 Refer to ["Deploy TPU workloads in GKE" guide](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus) for more information about how to set up a TPU GKE cluster with sufficient resources.
@@ -16,6 +16,7 @@ Refer to ["Deploy TPU workloads in GKE" guide](https://cloud.google.com/kubernet
 Create one `2x2x1` nodepool in your GKE cluster:
 
 ```bash
+# The default GKE version may be lower than `1.34.0-gke.2201000`. Check if `node-version` should be specified before applying this command.
 gcloud container node-pools create ${SINGLE_SLICE_NODE_POOL_NAME} \
     --cluster=${CLUSTER_NAME} \
     --machine-type=tpu7x-standard-4t \
@@ -36,6 +37,7 @@ gcloud compute resource-policies create workload-policy ${WORKLOAD_POLICY_NAME} 
     --project ${PROJECT_ID} \
     --region ${REGION}
 
+# The default GKE version may be lower than `1.34.0-gke.2201000`. Check if `node-version` should be specified before applying this command.
 gcloud container node-pools create ${MULTI_SLICE_NODE_POOL_NAME} \
     --cluster=${CLUSTER_NAME} \
     --machine-type=tpu7x-standard-4t \
@@ -44,12 +46,13 @@ gcloud container node-pools create ${MULTI_SLICE_NODE_POOL_NAME} \
     --location=${LOCATION} \
     --reservation=${RESERVATION_NAME} \
     --reservation-affinity=specific
-
 ```
 
 Note: `$LOCATION` can either be the GCP zone or region depending on the GKE cluster configuration.
 
 Nodepool provisioning commands may vary depending on the GKE cluster setup. Please refer to ["Deploy TPU workloads in GKE" guide](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#create-node-pool) for all of the options.
+
+If the default Google Kubernetes Engine (GKE) version is less than `1.34.0-gke.2201000`, the minimum required version for Ironwood, the node-version argument must be specified during node pool creation. Furthermore, the cluster's GKE version must also be equal to or greater than `1.34.0-gke.2201000`, settable via the cluster-version argument.
 
 
 ## Running the microbenchmarks in the GKE cluster
