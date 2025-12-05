@@ -18,6 +18,15 @@ To extract the log of HBM microbenchmark, use `kubectl log`:
 kubectl log tpu7x-2x2x1-hbm-microbenchmark
 ```
 
+Once the benchmark completes, you should see logs similar to the example below:
+
+```bash
+Tensor size: 8192.0 MB, time taken (median): 5.3523 ms, bandwidth (median): 3209.812 GB/s
+
+Writing metrics to JSONL file: ../microbenchmarks/hbm/metrics_report.jsonl
+Metrics written to CSV at ../microbenchmarks/hbm/t_single_device_hbm_copy_[A-Z0-9]+.tsv.
+```
+
 To retrieve the complete results, including the trace and TSV output files, you must keep the pod running after the benchmark completes. To do this, add a `sleep` command to the `tpu7x-2x2x1-hbm-microbenchmark.yaml` file. You can then use `kubectl cp` to copy the output from the pod.
 
 ```bash
