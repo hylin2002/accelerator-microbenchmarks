@@ -4,7 +4,7 @@ This guide provides instructions for running High Bandwidth Memory (HBM) microbe
 
 ## Create Node Pools
 
-Follow [Setup section](../../Ironwood_Microbenchmarks_readme.md#setup) to create an Ironwood node pool with 4 chips.
+Follow [Setup section](../../Ironwood_Microbenchmarks_readme.md#setup) create a GKE cluster with one 2x2x1 nodepool.
 
 ## Run HBM Microbenchmarks
 
@@ -15,13 +15,13 @@ kubectl apply -f tpu7x-2x2x1-hbm-microbenchmark.yaml
 
 To extract the log of HBM microbenchmark, use `kubectl log`:
 ```bash
-kubectl log tpu7x-single-host-microbenchmark
+kubectl log tpu7x-2x2x1-hbm-microbenchmark
 ```
 
 To retrieve the complete results, including the trace and TSV output files, you must keep the pod running after the benchmark completes. To do this, add a `sleep` command to the `tpu7x-2x2x1-hbm-microbenchmark.yaml` file. You can then use `kubectl cp` to copy the output from the pod.
 
 ```bash
-kubectl cp tpu7x-single-host-microbenchmark:/microbenchmarks/hbm hbm
+kubectl cp tpu7x-2x2x1-hbm-microbenchmark:/microbenchmarks/hbm hbm
 ```
 
 ## Expected bandwidth for different matrix size
