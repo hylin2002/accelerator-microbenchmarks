@@ -4,7 +4,7 @@ This guide provides instructions for running High Bandwidth Memory (HBM) microbe
 
 ## Create Node Pools
 
-Follow [Setup section](../../Ironwood_Microbenchmarks_readme.md#setup) create a GKE cluster with one 2x2x1 nodepool.
+Follow [Setup section](../../Ironwood_Microbenchmarks_readme.md#setup) to create a GKE cluster with one 2x2x1 nodepool.
 
 ## Run HBM Microbenchmarks
 
