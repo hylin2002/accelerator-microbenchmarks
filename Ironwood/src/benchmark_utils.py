@@ -193,6 +193,7 @@ def multiple_iteration_get_metrics_from_trace(trace: dict[str, Any], task: str =
         marker_done_events = marker_call_done_events
     unique_pids = set([e["pid"] for e in marker_done_events])
     print(f"Unique PIDs: {unique_pids}")
+    print("Stop!!!!!!!!!")
     if not marker_done_events:
         event_matcher = re.compile(task)
 
