@@ -47,9 +47,9 @@ spec:
         - |
           set -ex
 
-          git clone https://github.com/AI-Hypercomputer/accelerator-microbenchmarks.git
+          git clone https://github.com/hylin2002/accelerator-microbenchmarks.git
           cd accelerator-microbenchmarks
-          git checkout tpu7x-auto
+          git checkout bmm-tmp
           pip install -r requirements.txt
 
           GCS_BUCKET_DIR=${GCS_PATH}
