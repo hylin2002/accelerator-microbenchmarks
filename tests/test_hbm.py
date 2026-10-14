@@ -340,9 +340,12 @@ class HBMBandwidthBenchmarkTest(parameterized.TestCase):
 
     self.assertAlmostEqual(metrics["wall_clock_avg_ms"], 10.0)
     self.assertEqual(metrics["op_type"], op_type)
+    self.assertEqual(metrics["process_index"], 0)
+    self.assertEqual(metrics["global_device_id"], 0)
     self.assertAlmostEqual(
         metrics["wall_clock_bandwidth_per_device_gb_s"], expected_bw_gb_s
     )
+    self.assertAlmostEqual(metrics["wall_clock_bw_vs_median_pct"], 0.0)
     self.assertAlmostEqual(
         metrics["data_size_mib"], expected_bytes / (1024 * 1024)
     )
@@ -366,11 +369,15 @@ class HBMBandwidthBenchmarkTest(parameterized.TestCase):
             hardware_spec=test_report_utils.DEFAULT_TEST_HARDWARE_SPEC,
         ),
         metrics={
+            "process_index": 0,
+            "global_device_id": 63,
             "data_size_mib": 256.00,
             "wall_clock_p50_ms": 0.07112,
             "wall_clock_bandwidth_per_device_gb_s": 3769.107,
+            "wall_clock_bw_vs_median_pct": -0.55,
             "wall_clock_bandwidth_per_chip_gb_s": 7538.214,
             "xprof_bandwidth_per_device_gb_s": 3800.000,
+            "xprof_bw_vs_median_pct": 1.25,
             "xprof_bandwidth_per_chip_gb_s": 7600.000,
             "xprof_p50_ms": 0.06543,
         },
@@ -379,13 +386,17 @@ class HBMBandwidthBenchmarkTest(parameterized.TestCase):
     expected_cols = [
         "dtype",
         "op_type",
+        "process_index",
+        "global_device_id",
         "device_id",
         "num_elements",
         "data_size_mib",
         "wall_clock_p50_ms",
         "wall_clock_bandwidth_per_device_gb_s",
+        "wall_clock_bw_vs_median_pct",
         "xprof_p50_ms",
         "xprof_bandwidth_per_device_gb_s",
+        "xprof_bw_vs_median_pct",
     ]
     schema_cols = [col for col, _ in hbm.HBMBandwidthBenchmark.REPORT_SCHEMA]
     self.assertEqual(schema_cols, expected_cols)
@@ -406,7 +417,9 @@ class HBMBandwidthBenchmarkTest(parameterized.TestCase):
     self.assertIn("256.00", table)
     self.assertNotIn("total_bytes_mib", table)
     self.assertIn("3769.11", table)
+    self.assertIn("-0.55", table)
     self.assertIn("3800.00", table)
+    self.assertIn("1.25", table)
     self.assertIn("0.0711", table)
     self.assertIn("0.0654", table)
 
@@ -429,6 +442,194 @@ class HBMBandwidthBenchmarkTest(parameterized.TestCase):
     """Verify REPORT_SCHEMA matches output keys and covers all metrics."""
     self._setup_benchmark("copy")
     test_report_utils.assert_schema_matches_output(self, self.bm)
+
+  def _make_hbm_result(
+      self,
+      device_id: int,
+      global_device_id: int,
+      process_index: int,
+      num_elements: int,
+      wall_bw: float,
+      xprof_bw: float | None = None,
+      op_type: str = "copy",
+      dtype: str = "bfloat16",
+  ) -> base.BenchmarkResult:
+    platform_info = test_report_utils.DEFAULT_TEST_PLATFORM_INFO
+    metrics = {
+        "op_type": op_type,
+        "process_index": process_index,
+        "global_device_id": global_device_id,
+        "data_size_mib": 256.0,
+        "wall_clock_avg_ms": 0.1,
+        "wall_clock_p50_ms": 0.1,
+        "wall_clock_p90_ms": 0.1,
+        "wall_clock_std_ms": 0.0,
+        "wall_clock_bandwidth_per_device_gb_s": wall_bw,
+        "wall_clock_memory_roofline_efficiency_pct": (wall_bw / 3690.0) * 100.0,
+        "total_duration_s": 0.01,
+        "actual_runs": 10,
+    }
+    if xprof_bw is not None:
+      metrics.update({
+          "xprof_avg_ms": 0.08,
+          "xprof_p50_ms": 0.08,
+          "xprof_p90_ms": 0.08,
+          "xprof_std_ms": 0.0,
+          "xprof_bandwidth_per_device_gb_s": xprof_bw,
+          "xprof_memory_roofline_efficiency_pct": (xprof_bw / 3690.0) * 100.0,
+      })
+    return base.BenchmarkResult(
+        metadata=base.BenchmarkMetadata(
+            benchmark_name="HBMBandwidthBenchmark",
+            test_name="HBMBandwidthBenchmark_test",
+            start_time="2026-10-13T00:00:00",
+            end_time="2026-10-13T00:01:00",
+            params={
+                "dtype": dtype,
+                "op_type": op_type,
+                "device_id": device_id,
+                "num_elements": num_elements,
+            },
+            platform_info=platform_info,
+            hardware_spec=test_report_utils.DEFAULT_TEST_HARDWARE_SPEC,
+        ),
+        metrics=metrics,
+        raw_times_ms=[0.1],
+    )
+
+  def test_compute_median_bandwidth_comparison_by_sweep_group(self):
+    """Verifies signed % delta vs median is computed per (dtype, op_type, num_elements)."""
+    # Group 1 (num_elements=1024): wall_bw=[900, 1000, 1100] -> median=1000
+    # xprof_bw=[3000, 3200, 3400] -> median=3200
+    r0 = self._make_hbm_result(0, 0, 0, 1024, wall_bw=900.0, xprof_bw=3000.0)
+    r1 = self._make_hbm_result(1, 1, 0, 1024, wall_bw=1000.0, xprof_bw=3200.0)
+    r2 = self._make_hbm_result(2, 2, 0, 1024, wall_bw=1100.0, xprof_bw=3400.0)
+
+    # Group 2 (num_elements=2048, no xprof): wall_bw=[1900, 2100] -> median=2000
+    r3 = self._make_hbm_result(0, 0, 0, 2048, wall_bw=1900.0, xprof_bw=None)
+    r4 = self._make_hbm_result(1, 1, 0, 2048, wall_bw=2100.0, xprof_bw=None)
+
+    enriched = hbm.HBMBandwidthBenchmark.compute_median_bandwidth_comparison(
+        [r0, r1, r2, r3, r4]
+    )
+    self.assertLen(enriched, 5)
+
+    # Group 1 checks
+    self.assertAlmostEqual(
+        enriched[0].metrics["wall_clock_bw_vs_median_pct"], -10.0
+    )
+    self.assertAlmostEqual(
+        enriched[1].metrics["wall_clock_bw_vs_median_pct"], 0.0
+    )
+    self.assertAlmostEqual(
+        enriched[2].metrics["wall_clock_bw_vs_median_pct"], 10.0
+    )
+    self.assertAlmostEqual(
+        enriched[0].metrics["xprof_bw_vs_median_pct"], -6.25
+    )
+    self.assertAlmostEqual(enriched[1].metrics["xprof_bw_vs_median_pct"], 0.0)
+    self.assertAlmostEqual(enriched[2].metrics["xprof_bw_vs_median_pct"], 6.25)
+
+    # Group 2 checks (independent median=2000, no xprof column added)
+    self.assertAlmostEqual(
+        enriched[3].metrics["wall_clock_bw_vs_median_pct"], -5.0
+    )
+    self.assertAlmostEqual(
+        enriched[4].metrics["wall_clock_bw_vs_median_pct"], 5.0
+    )
+    self.assertNotIn("xprof_bw_vs_median_pct", enriched[3].metrics)
+    self.assertNotIn("xprof_bw_vs_median_pct", enriched[4].metrics)
+
+  def test_finalize_results_multihost_allgather_and_median(self):
+    """Verifies cross-host all-gather combines all hosts and computes global median deltas."""
+    # Host 0 local results (devices 0 and 1)
+    host0_r0 = self._make_hbm_result(
+        device_id=0,
+        global_device_id=0,
+        process_index=0,
+        num_elements=67108864,
+        wall_bw=1000.0,
+        xprof_bw=3200.0,
+    )
+    host0_r1 = self._make_hbm_result(
+        device_id=1,
+        global_device_id=1,
+        process_index=0,
+        num_elements=67108864,
+        wall_bw=1020.0,
+        xprof_bw=3220.0,
+    )
+
+    def fake_process_allgather(local_tensor, tiled=False):
+      self.assertFalse(tiled)
+      # Simulate Host 1 with global_device_id=8, 9 and higher bandwidths:
+      # wall_bw=[1040, 1060], xprof_bw=[3240, 3260]
+      host1_tensor = np.array(local_tensor, copy=True)
+      host1_tensor[0, 0] = 1.0  # process_index=1
+      host1_tensor[0, 1] = 8.0  # global_device_id=8
+      host1_tensor[0, 2] = 0.0  # device_id=0
+      host1_tensor[0, 7] = 1040.0  # wall_clock_bandwidth_per_device_gb_s
+      host1_tensor[0, 13] = 3240.0  # xprof_bandwidth_per_device_gb_s
+
+      host1_tensor[1, 0] = 1.0  # process_index=1
+      host1_tensor[1, 1] = 9.0  # global_device_id=9
+      host1_tensor[1, 2] = 1.0  # device_id=1
+      host1_tensor[1, 7] = 1060.0  # wall_clock_bandwidth_per_device_gb_s
+      host1_tensor[1, 13] = 3260.0  # xprof_bandwidth_per_device_gb_s
+      return np.stack([local_tensor, host1_tensor], axis=0)
+
+    with (
+        mock.patch.object(jax, "process_count", return_value=2),
+        mock.patch.object(jax, "process_index", return_value=0),
+        mock.patch.object(
+            hbm.multihost_utils,
+            "process_allgather",
+            side_effect=fake_process_allgather,
+        ) as mock_allgather,
+    ):
+      finalized = hbm.HBMBandwidthBenchmark.finalize_results(
+          [host0_r0, host0_r1]
+      )
+      mock_allgather.assert_called_once()
+
+    # 2 hosts * 2 devices/host = 4 results
+    self.assertLen(finalized, 4)
+    self.assertEqual(
+        [r.metrics["process_index"] for r in finalized], [0, 0, 1, 1]
+    )
+    self.assertEqual(
+        [r.metadata.platform_info.process_index for r in finalized],
+        [0, 0, 1, 1],
+    )
+    self.assertEqual(
+        [r.metrics["global_device_id"] for r in finalized], [0, 1, 8, 9]
+    )
+    self.assertEqual(
+        [r.metadata.params["device_id"] for r in finalized], [0, 1, 0, 1]
+    )
+
+    # Global wall_bw = [1000, 1020, 1040, 1060] -> median = 1030.0
+    # Global xprof_bw = [3200, 3220, 3240, 3260] -> median = 3230.0
+    expected_wall_pct = [
+        ((bw - 1030.0) / 1030.0) * 100.0 for bw in (1000.0, 1020.0, 1040.0, 1060.0)
+    ]
+    expected_xprof_pct = [
+        ((bw - 3230.0) / 3230.0) * 100.0 for bw in (3200.0, 3220.0, 3240.0, 3260.0)
+    ]
+    for res, exp_wall, exp_xprof in zip(
+        finalized, expected_wall_pct, expected_xprof_pct
+    ):
+      self.assertAlmostEqual(
+          res.metrics["wall_clock_bw_vs_median_pct"], exp_wall, places=4
+      )
+      self.assertAlmostEqual(
+          res.metrics["xprof_bw_vs_median_pct"], exp_xprof, places=4
+      )
+
+    # Verify DataFrame flattening preserves remote process_index
+    df = report.results_to_dataframe(finalized)
+    self.assertEqual(list(df["process_index"]), [0, 0, 1, 1])
+    self.assertEqual(list(df["global_device_id"]), [0, 1, 8, 9])
 
 
 class HBMBandwidthParamsValidationTest(parameterized.TestCase):

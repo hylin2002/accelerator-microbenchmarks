@@ -168,11 +168,13 @@ def run_benchmarks(
   resolved_hardware_spec = system.get_hardware_spec(platform_info.tpu_type)
 
   all_results: List[base.BenchmarkResult] = []
+  last_benchmark_cls: Optional[type[base.BaseBenchmark]] = None
   for task_name, config_obj in tasks:
     print(f"\n>>> Running Benchmark: {task_name} with {config_obj}")
 
     try:
       benchmark_cls = registry.benchmark_registry.get_benchmark(task_name)
+      last_benchmark_cls = benchmark_cls
 
       test_case_configs = config_obj.expand_test_cases()
       total_cases = len(test_case_configs)
@@ -194,6 +196,13 @@ def run_benchmarks(
     except Exception as e:
       print(f"Benchmark '{task_name}' failed: {e}")
       traceback.print_exc()
+
+  if (
+      all_results
+      and isinstance(last_benchmark_cls, type)
+      and issubclass(last_benchmark_cls, base.BaseBenchmark)
+  ):
+    all_results = last_benchmark_cls.finalize_results(all_results)
 
   print(
       f"Process {jax.process_index()} reached end of run. all_results length:"

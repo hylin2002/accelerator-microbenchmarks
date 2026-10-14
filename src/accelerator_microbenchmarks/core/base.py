@@ -422,6 +422,10 @@ class BaseBenchmark(Generic[TConfig], abc.ABC):
               f"{constants.TimingDomain.XPROF}_bandwidth_per_device_gb_s",
           ),
           (
+              f"{constants.TimingDomain.WALL_CLOCK}_bw_vs_median_pct",
+              f"{constants.TimingDomain.XPROF}_bw_vs_median_pct",
+          ),
+          (
               f"{constants.TimingDomain.WALL_CLOCK}_bandwidth_per_chip_gb_s",
               f"{constants.TimingDomain.XPROF}_bandwidth_per_chip_gb_s",
           ),
@@ -570,3 +574,10 @@ class BaseBenchmark(Generic[TConfig], abc.ABC):
     return BenchmarkResult(
         metadata=metadata, metrics=metrics, raw_times_ms=raw_times
     )
+
+  @classmethod
+  def finalize_results(
+      cls, results: Sequence["BenchmarkResult"]
+  ) -> list["BenchmarkResult"]:
+    """Post-run hook to synchronize or enrich results across cases and hosts."""
+    return list(results)

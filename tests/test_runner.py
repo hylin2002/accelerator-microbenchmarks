@@ -507,6 +507,86 @@ class TestRunner(absltest.TestCase):
                       print_table=False,
                   )
 
+  def test_run_benchmarks_calls_finalize_results_on_base_benchmark_subclass(
+      self,
+  ):
+    """Verifies that run_benchmarks invokes benchmark_cls.finalize_results on collected results."""
+    dummy_params = base.BaseBenchmarkParams(warmup_tries=1, num_runs=1)
+    mock_platform = platform.PlatformInfo(
+        tpu_type=system.TpuVersion.TPU7X,
+        topology="2x2x1",
+        total_devices=4,
+        local_devices=4,
+        process_count=1,
+        process_index=0,
+        python_version="3.11.0",
+        jax_version="0.4.30",
+        jaxlib_version="0.4.30",
+        libtpu_version="0.1.dev20240101",
+    )
+
+    class CustomFinalizeBenchmark(base.BaseBenchmark):
+      finalize_called_with = None
+
+      def run_op(self, *args, **kwargs):
+        return None
+
+      def generate_inputs(self):
+        return ()
+
+      def get_total_bytes(self):
+        return 0.0
+
+      def calculate_throughput_metrics(self, latency_ms, prefix):
+        del latency_ms, prefix
+        return {}
+
+      def run(self):
+        return base.BenchmarkResult(
+            metadata=base.BenchmarkMetadata(
+                benchmark_name="CustomFinalizeBenchmark",
+                test_name="CustomFinalizeBenchmark_test",
+                start_time="now",
+                end_time="then",
+                params={},
+                platform_info=mock_platform,
+                hardware_spec=system.TPU7X_HARDWARE_SPEC,
+            ),
+            metrics={"custom_metric": 1.0},
+            raw_times_ms=[1.0],
+        )
+
+      @classmethod
+      def finalize_results(cls, results):
+        cls.finalize_called_with = list(results)
+        for r in results:
+          r.metrics["finalized"] = True
+        return list(results)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      with (
+          mock.patch.object(runner.benchmark_loader, "load_all_benchmarks"),
+          mock.patch.object(runner, "set_xla_flags"),
+          mock.patch.object(runner, "init_jax_distributed"),
+          mock.patch.object(
+              runner.platform, "get_platform_info", return_value=mock_platform
+          ),
+          mock.patch.object(
+              runner.registry.benchmark_registry,
+              "get_benchmark",
+              return_value=CustomFinalizeBenchmark,
+          ),
+      ):
+        results = runner.run_benchmarks(
+            tasks=[("custom", dummy_params), ("custom", dummy_params)],
+            output_dir=tmpdir,
+            print_table=False,
+        )
+        self.assertLen(results, 2)
+        self.assertIsNotNone(CustomFinalizeBenchmark.finalize_called_with)
+        self.assertLen(CustomFinalizeBenchmark.finalize_called_with, 2)
+        self.assertTrue(all(r.metrics.get("finalized") for r in results))
+
 
 if __name__ == "__main__":
   absltest.main()
